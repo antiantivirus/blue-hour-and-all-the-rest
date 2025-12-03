@@ -40,7 +40,9 @@
       <img src="assets/stars.png" id="stars-image" alt="Stars" />
       <div id="marquee-container">
         <div class="marquee-content">
-          <span class="font-louise" id="marquee-text">GATHERING...</span>
+          <span class="font-louise" id="marquee-text"
+            >THE&nbsp;&nbsp;FORAY&nbsp;&nbsp;OF&nbsp;&nbsp;THE&nbsp;&nbsp;FOOL&nbsp;&nbsp;LEAVES&nbsp;&nbsp;A&nbsp;&nbsp;PATH&nbsp;&nbsp;FOR&nbsp;&nbsp;THE&nbsp;&nbsp;FOOL</span
+          >
         </div>
       </div>
       <div id="time"></div>
@@ -58,7 +60,7 @@
 
     @font-face {
       font-family: "louise";
-      src: url("assets/Louse-Regular.woff2") format("woff2");
+      src: url("assets/Louise-Regular.woff2") format("woff2");
       font-weight: normal;
       font-style: normal;
     }
@@ -192,6 +194,10 @@
       z-index: 9999;
       pointer-events: none;
       transition: height 1s ease, background-color 1s ease;
+    }
+
+    #time.testing-mode {
+      transition: none;
     }
 
     #time-display {
@@ -486,31 +492,75 @@
       }
     }
 
+    // Testing mode: 24 hours cycle in 30 seconds
+    const TESTING_MODE = true;
+    const CYCLE_DURATION_MS = 30000; // 30 seconds
+    let startTime = null;
+
     // Update time div height and color based on time
     function updateTimeDiv() {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentSecond = now.getSeconds();
+      let currentHour, currentMinute, currentSecond, minutesSince1600;
 
-      // Calculate total minutes since 16:00 today or yesterday
-      let minutesSince1600;
-      if (currentHour >= 16) {
-        // After 16:00 today
-        minutesSince1600 =
-          (currentHour - 16) * 60 + currentMinute + currentSecond / 60;
+      if (TESTING_MODE) {
+        // Initialize startTime on first call
+        if (startTime === null) {
+          startTime = Date.now();
+        }
+
+        // Calculate simulated time - 24 hours in 30 seconds
+        const elapsed = Date.now() - startTime;
+        const cycleProgress = (elapsed % CYCLE_DURATION_MS) / CYCLE_DURATION_MS;
+
+        // Direct calculation: total minutes in 24 hours = 1440
+        minutesSince1600 = cycleProgress * (24 * 60);
+
+        // Calculate display time starting from 16:00
+        const totalSeconds = minutesSince1600 * 60;
+        currentHour = Math.floor(totalSeconds / 3600) + 16;
+        currentMinute = Math.floor((totalSeconds % 3600) / 60);
+        currentSecond = Math.floor(totalSeconds % 60);
+
+        // Wrap hours to 24-hour format
+        if (currentHour >= 24) {
+          currentHour = currentHour - 24;
+        }
       } else {
-        // Before 16:00 today (so counting from 16:00 yesterday)
-        minutesSince1600 =
-          (24 - 16 + currentHour) * 60 + currentMinute + currentSecond / 60;
+        // Real-time mode
+        const now = new Date();
+        currentHour = now.getHours();
+        currentMinute = now.getMinutes();
+        currentSecond = now.getSeconds();
+
+        // Calculate total minutes since 16:00 today or yesterday
+        if (currentHour >= 16) {
+          // After 16:00 today
+          minutesSince1600 =
+            (currentHour - 16) * 60 + currentMinute + currentSecond / 60;
+        } else {
+          // Before 16:00 today (so counting from 16:00 yesterday)
+          minutesSince1600 =
+            (24 - 16 + currentHour) * 60 + currentMinute + currentSecond / 60;
+        }
       }
 
       // Total minutes in 24 hours = 1440
       const totalMinutes = 24 * 60;
       const percentage = (minutesSince1600 / totalMinutes) * 100;
 
+      // Debug logging
+      console.log({
+        minutesSince1600,
+        totalMinutes,
+        percentage,
+        currentHour,
+        currentMinute,
+      });
+
       // Update height
       const timeDiv = document.getElementById("time");
+      if (TESTING_MODE) {
+        timeDiv.classList.add("testing-mode");
+      }
       timeDiv.style.height = `${percentage}%`;
 
       // Format time as HH:MM with blinking colon
@@ -535,7 +585,6 @@
 
     // Blue Hour Mode Toggle
     const bluehourImage = document.getElementById("bluehour");
-    const marqueeText = document.getElementById("marquee-text");
     let bluehourActive = false;
 
     bluehourImage.addEventListener("click", () => {
@@ -544,7 +593,6 @@
       if (bluehourActive) {
         // Get current live text and update marquee
         const liveNowText = document.getElementById("live-now").textContent;
-        marqueeText.textContent = liveNowText;
 
         // Activate blue hour mode
         document.body.classList.add("bluehour-active");
@@ -573,6 +621,6 @@
     setInterval(fetchLiveNow, 30000);
 
     // Update time div every second for smooth animation
-    setInterval(updateTimeDiv, 1000);
+    setInterval(updateTimeDiv, 10);
   </script>
 </html>
