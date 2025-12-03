@@ -8,15 +8,13 @@
   <body>
     <div id="top-container">
       <img
-        src="/assets/bluehour-map.svg"
+        src="assets/bluehour-map.svg"
         id="bluehour"
         alt="blue hour and all the rest"
       />
       <div id="live-now-container">
-        <span class="font-louise">LIVE: </span>
-        <span id="live-now"
-          >THE FORAY OF THE FOOL LEAVES A PATH FOR THE FOOL</span
-        >
+        <span class="font-louise">LIVE: <br /></span>
+        <span id="live-now">GATHERING...</span>
       </div>
       <button id="play-button" aria-label="Play button">
         <svg
@@ -47,14 +45,14 @@
   <style>
     @font-face {
       font-family: "harber";
-      src: url("/assets/Harber-Medium.woff2") format("woff2");
+      src: url("assets/Harber-Medium.woff2") format("woff2");
       font-weight: normal;
       font-style: normal;
     }
 
     @font-face {
       font-family: "louise";
-      src: url("/assets/Louse-Regular.woff2") format("woff2");
+      src: url("assets/Louse-Regular.woff2") format("woff2");
       font-weight: normal;
       font-style: normal;
     }
@@ -73,6 +71,7 @@
 
     .font-louise {
       font-family: "louise", serif;
+      font-size: 1.5rem;
     }
 
     #top-container {
@@ -335,7 +334,7 @@
             liveNowElement.textContent =
               data.result.content.title.toUpperCase();
           } else {
-            liveNowElement.textContent = "LIVE: BLUE HOUR AND ALL THE REST";
+            liveNowElement.textContent = "BLUE HOUR AND ALL THE REST";
           }
         } else {
           console.error("API returned success: false or no result");
