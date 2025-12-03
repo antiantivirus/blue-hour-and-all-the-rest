@@ -36,8 +36,14 @@
       <div id="schedule-link">
         <a href="#schedule-container">SCHEDULE</a>
       </div>
-      <div id="time"></div>
       <div id="time-display"></div>
+      <img src="assets/stars.png" id="stars-image" alt="Stars" />
+      <div id="marquee-container">
+        <div class="marquee-content">
+          <span class="font-louise" id="marquee-text">GATHERING...</span>
+        </div>
+      </div>
+      <div id="time"></div>
     </div>
     <div id="schedule-container"></div>
   </body>
@@ -67,6 +73,9 @@
       background: var(--background-colour);
       color: var(--primary-colour);
       font-family: "harber", sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
     }
 
     .font-louise {
@@ -85,6 +94,7 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
+      cursor: ;
     }
 
     @media (min-width: 768px) {
@@ -209,6 +219,138 @@
       100% {
         opacity: 0;
       }
+    }
+
+    /* Blue Hour Mode Styles */
+    body.bluehour-active {
+      background-color: #000000;
+    }
+
+    #stars-image {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 40vw;
+      max-height: 40vh;
+      object-fit: contain;
+      mix-blend-mode: screen;
+      z-index: 9998;
+      display: none;
+      pointer-events: none;
+      opacity: 1;
+      filter: invert();
+    }
+
+    body.bluehour-active #stars-image {
+      display: block;
+      /* animation: flashPattern 4s steps(1) infinite; */
+    }
+
+    @keyframes flashPattern {
+      0%,
+      14% {
+        opacity: 1;
+      }
+      /* on */
+      14%,
+      28% {
+        opacity: 0;
+      }
+      /* off */
+      28%,
+      42% {
+        opacity: 1;
+      }
+      /* on */
+      42%,
+      56% {
+        opacity: 0;
+      }
+      /* off */
+      56%,
+      60% {
+        opacity: 1;
+      }
+      /* on (quick) */
+      60%,
+      64% {
+        opacity: 0;
+      }
+      /* off (quick) */
+      64%,
+      68% {
+        opacity: 1;
+      }
+      /* on (quick) */
+      68%,
+      72% {
+        opacity: 0;
+      }
+      /* off (quick) */
+      72%,
+      76% {
+        opacity: 1;
+      }
+      /* on (quick) */
+      76%,
+      100% {
+        opacity: 0;
+      }
+      /* off */
+    }
+
+    #marquee-container {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 100vw;
+      overflow: hidden;
+      z-index: 9999;
+      display: none;
+      pointer-events: none;
+    }
+
+    body.bluehour-active #marquee-container {
+      display: block;
+    }
+
+    .marquee-content {
+      display: inline-block;
+      animation: marquee 20s linear infinite;
+      white-space: nowrap;
+    }
+
+    #marquee-container .font-louise {
+      font-size: 3rem;
+      color: var(--primary-colour);
+      white-space: nowrap;
+      display: inline-block;
+      padding-right: 100vw;
+    }
+
+    @keyframes marquee {
+      0% {
+        transform: translateX(100vw);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+
+    @media (max-width: 768px) {
+      #marquee-container .font-louise {
+        font-size: 2rem;
+      }
+
+      #stars-image {
+        max-width: 70vw;
+      }
+    }
+
+    #bluehour {
+      cursor: pointer;
     }
   </style>
 
@@ -390,6 +532,37 @@
       timeDiv.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
       timeDiv.style.mixBlendMode = "difference";
     }
+
+    // Blue Hour Mode Toggle
+    const bluehourImage = document.getElementById("bluehour");
+    const marqueeText = document.getElementById("marquee-text");
+    let bluehourActive = false;
+
+    bluehourImage.addEventListener("click", () => {
+      bluehourActive = !bluehourActive;
+
+      if (bluehourActive) {
+        // Get current live text and update marquee
+        const liveNowText = document.getElementById("live-now").textContent;
+        marqueeText.textContent = liveNowText;
+
+        // Activate blue hour mode
+        document.body.classList.add("bluehour-active");
+      } else {
+        // Deactivate blue hour mode
+        document.body.classList.remove("bluehour-active");
+      }
+    });
+
+    // Update marquee text when live now changes
+    const originalFetchLiveNow = fetchLiveNow;
+    fetchLiveNow = async function () {
+      await originalFetchLiveNow();
+      if (bluehourActive) {
+        const liveNowText = document.getElementById("live-now").textContent;
+        marqueeText.textContent = liveNowText;
+      }
+    };
 
     // Load schedule and live now on page load
     fetchSchedule();
