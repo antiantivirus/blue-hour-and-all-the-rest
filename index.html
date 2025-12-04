@@ -4,13 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Seyðisfjörður Community Radio</title>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
   </head>
   <body>
     <div id="top-container">
       <img
-        src="assets/bluehour-map.svg"
+        src="assets/bluehour-map.png"
         id="bluehour"
         alt="blue hour and all the rest"
+      />
+      <img
+        src="assets/bluehour-map-dark.png"
+        id="bluehour-dark"
+        alt="blue hour dark mode"
       />
       <div id="live-now-container">
         <span class="font-louise">LIVE: <br /></span>
@@ -47,7 +53,20 @@
       </div>
       <div id="time"></div>
     </div>
+    <marquee id="network-marquee"
+      >a network <span class="font-louise">of</span> signals, encounters
+      <span class="font-louise">and</span> shared presence ✦ a network
+      <span class="font-louise">of</span> signals, encounters
+      <span class="font-louise">and</span> shared presence ✦ a network
+      <span class="font-louise">of</span> signals, encounters
+      <span class="font-louise">and</span> shared presence ✦
+    </marquee>
     <div id="schedule-container"></div>
+    <div id="thanks-container">
+      thanks to: irene, sofie, anna, stella, ivanna, tom, olga, yr, lucie,
+      silje, lili, jack, jeff, hannah, tilde, eik, jonas, evelin, rosa, mark,
+      heiðdís, mari, aoife, lara, noa, amanda
+    </div>
   </body>
 
   <style>
@@ -90,17 +109,37 @@
       position: relative;
     }
 
-    #bluehour {
+    #bluehour,
+    #bluehour-dark {
       position: absolute;
       width: 90vw;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      cursor: ;
+      cursor: pointer;
+    }
+
+    #bluehour-dark {
+      display: none;
+    }
+
+    body.bluehour-active #bluehour {
+      display: none;
+    }
+
+    body.bluehour-active #bluehour-dark {
+      display: block;
+    }
+
+    #network-marquee {
+      width: 100vw;
+      padding-top: 20px;
+      padding-bottom: 20px;
     }
 
     @media (min-width: 768px) {
-      #bluehour {
+      #bluehour,
+      #bluehour-dark {
         width: 60vw;
       }
     }
@@ -135,20 +174,42 @@
     #schedule-container {
       padding: 20px 20px;
       min-height: 100vh;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 200px));
+      gap: 20px;
+    }
+
+    #thanks-container {
+      padding: 20px 20px;
+      max-width: 65ch;
     }
 
     .schedule-event {
-      margin-bottom: 20px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--primary-colour);
-    }
-
-    .schedule-event:last-child {
-      border-bottom: none;
+      max-width: 200px;
     }
 
     .event-time {
       font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 0.7rem;
+    }
+
+    .event-title {
+      margin-bottom: 8px;
+    }
+
+    .event-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 2px;
+      transform: rotate(12deg);
+    }
+
+    .event-description {
+      font-size: 0.9em;
     }
 
     #play-button {
@@ -395,22 +456,20 @@
 
     // Fetch and display schedule
     async function fetchSchedule() {
-      const now = new Date();
-      const nextFriday = new Date(now);
+      const DateTime = luxon.DateTime;
+      const now = DateTime.now().setZone("Atlantic/Reykjavik");
 
-      // Calculate next Friday
-      const daysUntilFriday = (5 - now.getDay() + 7) % 7;
-      nextFriday.setDate(
-        now.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday)
-      );
-      nextFriday.setHours(16, 0, 0, 0);
+      // Calculate next Friday at 16:00
+      const daysUntilFriday = (5 - now.weekday + 7) % 7;
+      const nextFriday = now
+        .plus({ days: daysUntilFriday === 0 ? 7 : daysUntilFriday })
+        .set({ hour: 16, minute: 0, second: 0, millisecond: 0 });
 
       // Saturday at 16:00
-      const saturday = new Date(nextFriday);
-      saturday.setDate(saturday.getDate() + 1);
+      const saturday = nextFriday.plus({ days: 1 });
 
-      const startDate = nextFriday.toISOString();
-      const endDate = saturday.toISOString();
+      const startDate = nextFriday.toUTC().toISO();
+      const endDate = saturday.toUTC().toISO();
 
       try {
         const response = await fetch(
@@ -419,9 +478,13 @@
           )}`
         );
         const data = await response.json();
+        console.log("Schedule data:", data);
 
         if (data.success && data.schedules) {
+          console.log("Number of events:", data.schedules.length);
           displaySchedule(data.schedules);
+        } else {
+          console.log("No schedules found or API returned success: false");
         }
       } catch (error) {
         console.error("Error fetching schedule:", error);
@@ -430,29 +493,53 @@
 
     function displaySchedule(events) {
       const container = document.getElementById("schedule-container");
+      const DateTime = luxon.DateTime;
+      console.log("displaySchedule called with events:", events);
 
-      events.forEach((event) => {
+      events.forEach((event, index) => {
         const eventDiv = document.createElement("div");
         eventDiv.className = "schedule-event";
 
-        const startTime = new Date(event.startDate).toLocaleTimeString(
-          "en-US",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        );
+        console.log(`Processing event ${index}:`, event);
 
-        const endTime = new Date(event.endDate).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
+        // Parse dates with Luxon - use 'start' and 'end' fields
+        let startDate = DateTime.fromISO(event.start);
+        let endDate = DateTime.fromISO(event.end);
+
+        // Check if dates are valid
+        if (!startDate.isValid || !endDate.isValid) {
+          console.error("Invalid date for event:", event, {
+            startDate: startDate.invalidReason,
+            endDate: endDate.invalidReason,
+          });
+          return;
+        }
+
+        const startTime = startDate.toFormat("HH:mm");
+        const endTime = endDate.toFormat("HH:mm");
+
+        // Extract key from curly brackets in title (e.g., "church bells rings (church)" -> "church")
+        // The image key is what's inside the parentheses within the curly brackets
+        const bracketMatch = event.title.match(/\(([^\)]+)\)/);
+        const imageKey = bracketMatch ? bracketMatch[1] : null;
+
+        // Remove parentheses and their content from title
+        const titleWithoutBrackets = event.title
+          .replace(/\s*\([^\)]+\)\s*/g, "")
+          .trim();
 
         eventDiv.innerHTML = `
-          <div class="event-time">${startTime} - ${endTime}</div>
-          <div class="event-title">${event.title}</div>
+          <div class="event-time">
+            ${startTime} - ${endTime}
+            ${
+              imageKey
+                ? `<img src="assets/symbols/${imageKey}.png" alt="${imageKey}" class="event-icon">`
+                : ""
+            }
+          </div>
+          <div class="event-title">
+            ${titleWithoutBrackets}
+          </div>
           ${
             event.description
               ? `<div class="event-description">${event.description}</div>`
@@ -473,7 +560,6 @@
           )}`
         );
         const data = await response.json();
-        console.log("Live now data:", data);
 
         const liveNowElement = document.getElementById("live-now");
 
@@ -547,15 +633,6 @@
       const totalMinutes = 24 * 60;
       const percentage = (minutesSince1600 / totalMinutes) * 100;
 
-      // Debug logging
-      console.log({
-        minutesSince1600,
-        totalMinutes,
-        percentage,
-        currentHour,
-        currentMinute,
-      });
-
       // Update height
       const timeDiv = document.getElementById("time");
       if (TESTING_MODE) {
@@ -585,9 +662,10 @@
 
     // Blue Hour Mode Toggle
     const bluehourImage = document.getElementById("bluehour");
+    const bluehourDarkImage = document.getElementById("bluehour-dark");
     let bluehourActive = false;
 
-    bluehourImage.addEventListener("click", () => {
+    function toggleBluehourMode() {
       bluehourActive = !bluehourActive;
 
       if (bluehourActive) {
@@ -600,7 +678,10 @@
         // Deactivate blue hour mode
         document.body.classList.remove("bluehour-active");
       }
-    });
+    }
+
+    bluehourImage.addEventListener("click", toggleBluehourMode);
+    bluehourDarkImage.addEventListener("click", toggleBluehourMode);
 
     // Update marquee text when live now changes
     const originalFetchLiveNow = fetchLiveNow;
